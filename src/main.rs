@@ -11,6 +11,7 @@ use egui::{ViewportBuilder, WindowLevel, X11WindowType};
 fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
 
+    #[cfg(debug_assertions)]
     env_logger::Builder::from_default_env()
         .filter_module("amoeba", log::LevelFilter::Trace)
         .init();

@@ -1,5 +1,5 @@
-use crate::query::response::QueryResponse;
 use crate::query::SearchEngine;
+use crate::query::response::QueryResponse;
 use egui::Ui;
 use flume::Sender;
 use lazy_static::lazy_static;
@@ -9,15 +9,14 @@ use strfmt::strfmt;
 use surf::{Client, Config, Url};
 
 lazy_static! {
-    pub static ref WIKIMEDIA_CLIENT_ID: String =
-        std::env::var("WIKIMEDIA_CLIENT_ID").unwrap_or("".to_string());
-    pub static ref WIKIMEDIA_CLIENT_SECRET: String =
-        std::env::var("WIKIMEDIA_CLIENT_SECRET").unwrap_or("".to_string());
-    pub static ref WIKIMEDIA_ACCESS_TOKEN: String =
-        std::env::var("WIKIMEDIA_ACCESS_TOKEN").unwrap_or("".to_string());
+    pub static ref WIKIMEDIA_CLIENT_ID: Option<String> = std::env::var("WIKIMEDIA_CLIENT_ID").ok();
+    pub static ref WIKIMEDIA_CLIENT_SECRET: Option<String> =
+        std::env::var("WIKIMEDIA_CLIENT_SECRET").ok();
+    pub static ref WIKIMEDIA_ACCESS_TOKEN: Option<String> =
+        std::env::var("WIKIMEDIA_ACCESS_TOKEN").ok();
 }
 
-pub const WIKIMEDIA_URL: &'static str = "https://api.wikimedia.org";
+pub const WIKIMEDIA_URL: &str = "https://api.wikimedia.org";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchResults {
@@ -79,21 +78,28 @@ pub struct WikipediaEngine {
 impl WikipediaEngine {
     pub fn new() -> Self {
         let client = (|| {
-            Config::new()
+            let mut config = Config::new()
                 .set_base_url(
                     Url::parse(WIKIMEDIA_URL)
                         .inspect_err(|e| log::error!("{e}"))
                         .ok()?,
                 )
                 .set_timeout(Some(Duration::from_secs(5)))
-                .add_header("Authorization", WIKIMEDIA_ACCESS_TOKEN.as_str())
-                .inspect_err(|e| log::error!("{e}"))
-                .ok()?
                 .add_header("User-Agent", "Amoeba (me@arvinsk.org)")
                 .inspect_err(|e| log::error!("{e}"))
-                .ok()?
-                .try_into()
-                .ok()
+                .ok()?;
+
+            if let Some(access_token) = &*WIKIMEDIA_ACCESS_TOKEN {
+                config = config
+                    .add_header(
+                        "Authorization",
+                        format!("Bearer {access_token}"),
+                    )
+                    .inspect_err(|e| log::error!("{e}"))
+                    .ok()?;
+            }
+
+            config.try_into().ok()
         })();
 
         Self { client }
@@ -125,10 +131,20 @@ impl SearchEngine for WikipediaEngine {
         };
 
         if let Some(client) = &self.client {
-            let res: SearchResults = client.get(strfmt!(SearchTitle::ENDPOINT, project => search.project.clone(), language => search.language.clone())?)
+            let request = client.get(strfmt!(SearchTitle::ENDPOINT, project => search.project.clone(), language => search.language.clone())?)
                 .query(&search)
                 .map_err(|err| anyhow::anyhow!(err))?
-                .recv_json()
+                .build();
+
+            let mut response = client
+                .send(request)
+                .await
+                .map_err(|err| anyhow::anyhow!(err))?;
+
+            log::trace!("Response: {response:?}");
+
+            let res: SearchResults = response
+                .body_json()
                 .await
                 .map_err(|err| anyhow::anyhow!(err))?;
 
@@ -142,8 +158,8 @@ impl SearchEngine for WikipediaEngine {
                                 icon(ui);
 
                                 ui.add(
-                                    egui::Label::new(
-                                        egui::RichText::new(format!(
+                                    egui::Label::new(egui::RichText::new(
+                                        format!(
                                             "({title}) {desc}",
                                             title = res.title,
                                             desc = if let Some(desc) = res.description.as_ref() {
@@ -151,8 +167,9 @@ impl SearchEngine for WikipediaEngine {
                                             } else {
                                                 ""
                                             }
-                                        ).trim())
-                                    )
+                                        )
+                                        .trim(),
+                                    ))
                                     .wrap_mode(egui::TextWrapMode::Wrap),
                                 )
                             })

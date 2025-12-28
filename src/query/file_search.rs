@@ -16,7 +16,7 @@ impl Fzf {
 #[async_trait::async_trait]
 impl SearchEngine for Fzf {
     fn prefix(&self) -> &'static str {
-        "@f"
+        "@fzf"
     }
 
     fn icon(&self) -> Box<dyn Fn(&mut Ui) -> egui::Response + Send> {

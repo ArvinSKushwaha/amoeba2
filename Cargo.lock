@@ -211,6 +211,7 @@ dependencies = [
  "num_cpus",
  "parking_lot",
  "serde",
+ "serde_json",
  "strfmt",
  "surf",
  "thiserror 2.0.17",

@@ -2,7 +2,9 @@ mod mock_engine;
 pub mod response;
 mod wikipedia;
 mod file_search;
+mod content_search;
 
+use crate::query::content_search::Rga;
 use crate::query::mock_engine::MockEngine;
 use crate::query::response::QueryResponse;
 use crate::query::wikipedia::WikipediaEngine;
@@ -36,6 +38,7 @@ lazy_static::lazy_static! {
             Box::new(MockEngine),
             Box::new(WikipediaEngine::new()),
             Box::new(Fzf::new()),
+            Box::new(Rga::new()),
         ];
 
         let mut map = HashMap::new();
