@@ -1,11 +1,12 @@
 mod app;
 mod config;
 mod query;
+mod response;
 mod theme;
 
 use crate::app::AmoebaApp;
 use crate::config::AmoebaConfig;
-use eframe::{egui, run_native, NativeOptions, Renderer};
+use eframe::{NativeOptions, Renderer, egui, run_native};
 use egui::{ViewportBuilder, WindowLevel, X11WindowType};
 
 fn main() -> anyhow::Result<()> {

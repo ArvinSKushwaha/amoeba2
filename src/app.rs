@@ -1,6 +1,6 @@
 use crate::config::AmoebaConfig;
-use crate::query::response::QueryResponse;
 use crate::query::QueryEngine;
+use crate::response::QueryResponse;
 use crate::theme::{CornerRadius, Margin};
 use eframe::epaint::text::{FontInsert, InsertFontFamily};
 use eframe::{App, CreationContext, Frame};
@@ -120,54 +120,53 @@ impl App for AmoebaApp {
 
                             response.request_focus();
 
-                            if response.has_focus() {
-                                if let Some(mut state) = TextEdit::load_state(ctx, response.id)
-                                    && let Some(range) = state.cursor.char_range()
-                                    && let Some(pos) = range.single()
+                            if response.has_focus()
+                                && let Some(mut state) = TextEdit::load_state(ctx, response.id)
+                                && let Some(range) = state.cursor.char_range()
+                                && let Some(pos) = range.single()
+                            {
+                                if pos.index == 0
+                                    && ctx.input(|i| {
+                                        i.key_pressed(egui::Key::Backspace)
+                                            || i.key_pressed(egui::Key::ArrowLeft)
+                                    })
                                 {
-                                    if pos.index == 0
-                                        && ctx.input(|i| {
-                                            i.key_pressed(egui::Key::Backspace)
-                                                || i.key_pressed(egui::Key::ArrowLeft)
-                                        })
-                                    {
-                                        let filter = self.filter.take();
-                                        if let Some(filter) = filter {
-                                            state.cursor.set_char_range(Some(
-                                                egui::text::CCursorRange::one(
-                                                    egui::text::CCursor::new(filter.len()),
-                                                ),
-                                            ));
-                                            self.query_bar = filter + " " + &self.query_bar;
-                                            state.store(ctx, response.id);
-                                            self.request_query();
-                                        }
-                                        log::info!(
-                                            "Filter: {:?}, Query Bar: {:?}",
-                                            self.filter,
-                                            self.query_bar
-                                        );
-                                    } else if self.query_bar.starts_with('@')
-                                        && let Some(idx) = self.query_bar.find(' ')
-                                        && pos.index > idx
-                                    {
+                                    let filter = self.filter.take();
+                                    if let Some(filter) = filter {
                                         state.cursor.set_char_range(Some(
-                                            egui::text::CCursorRange::one(pos - idx - 1),
+                                            egui::text::CCursorRange::one(
+                                                egui::text::CCursor::new(filter.len()),
+                                            ),
                                         ));
-                                        let mut tmp = self.query_bar.split_off(idx + 1);
-                                        std::mem::swap(&mut self.query_bar, &mut tmp);
-                                        tmp.pop();
-                                        self.filter.replace(tmp);
+                                        self.query_bar = filter + " " + &self.query_bar;
                                         state.store(ctx, response.id);
-
-                                        log::info!(
-                                            "Filter: {:?}, Query Bar: {:?}",
-                                            self.filter,
-                                            self.query_bar
-                                        );
-
                                         self.request_query();
                                     }
+                                    log::info!(
+                                        "Filter: {:?}, Query Bar: {:?}",
+                                        self.filter,
+                                        self.query_bar
+                                    );
+                                } else if self.query_bar.starts_with('@')
+                                    && let Some(idx) = self.query_bar.find(' ')
+                                    && pos.index > idx
+                                {
+                                    state.cursor.set_char_range(Some(
+                                        egui::text::CCursorRange::one(pos - idx - 1),
+                                    ));
+                                    let mut tmp = self.query_bar.split_off(idx + 1);
+                                    std::mem::swap(&mut self.query_bar, &mut tmp);
+                                    tmp.pop();
+                                    self.filter.replace(tmp);
+                                    state.store(ctx, response.id);
+
+                                    log::info!(
+                                        "Filter: {:?}, Query Bar: {:?}",
+                                        self.filter,
+                                        self.query_bar
+                                    );
+
+                                    self.request_query();
                                 }
                             }
 

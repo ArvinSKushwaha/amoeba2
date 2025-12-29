@@ -1,5 +1,5 @@
-use crate::query::response::QueryResponse;
 use crate::query::SearchEngine;
+use crate::response::QueryResponse;
 use egui::Ui;
 use flume::Sender;
 use std::time::Instant;
@@ -9,6 +9,10 @@ pub struct MockEngine;
 
 #[async_trait::async_trait]
 impl SearchEngine for MockEngine {
+    fn name(&self) -> &'static str {
+        "mock_engine"
+    }
+
     fn prefix(&self) -> &'static str {
         "@mk"
     }
@@ -30,11 +34,8 @@ impl SearchEngine for MockEngine {
                         icon(ui);
 
                         ui.add(
-                            egui::Label::new(egui::RichText::new(format!(
-                                "{query}",
-                                query = loc_query
-                            )))
-                            .wrap_mode(egui::TextWrapMode::Wrap),
+                            egui::Label::new(egui::RichText::new(loc_query.to_string()))
+                                .wrap_mode(egui::TextWrapMode::Wrap),
                         )
                     }),
                     Box::new(|_: &mut egui::Ui| {}),

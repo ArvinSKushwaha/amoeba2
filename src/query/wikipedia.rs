@@ -1,5 +1,5 @@
 use crate::query::SearchEngine;
-use crate::query::response::QueryResponse;
+use crate::response::QueryResponse;
 use egui::Ui;
 use flume::Sender;
 use lazy_static::lazy_static;
@@ -84,17 +84,14 @@ impl WikipediaEngine {
                         .inspect_err(|e| log::error!("{e}"))
                         .ok()?,
                 )
-                .set_timeout(Some(Duration::from_secs(5)))
-                .add_header("User-Agent", "Amoeba (me@arvinsk.org)")
-                .inspect_err(|e| log::error!("{e}"))
-                .ok()?;
+                .set_timeout(Some(Duration::from_secs(5)));
 
             if let Some(access_token) = &*WIKIMEDIA_ACCESS_TOKEN {
                 config = config
-                    .add_header(
-                        "Authorization",
-                        format!("Bearer {access_token}"),
-                    )
+                    .add_header("User-Agent", "Amoeba (me@arvinsk.org)")
+                    .inspect_err(|e| log::error!("{e}"))
+                    .ok()?
+                    .add_header("Authorization", format!("Bearer {access_token}"))
                     .inspect_err(|e| log::error!("{e}"))
                     .ok()?;
             }
@@ -108,6 +105,10 @@ impl WikipediaEngine {
 
 #[async_trait::async_trait]
 impl SearchEngine for WikipediaEngine {
+    fn name(&self) -> &'static str {
+        "wikipedia"
+    }
+
     fn prefix(&self) -> &'static str {
         "@wi"
     }

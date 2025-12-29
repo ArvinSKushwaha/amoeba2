@@ -1,5 +1,5 @@
-use crate::query::response::QueryResponse;
 use crate::query::SearchEngine;
+use crate::response::QueryResponse;
 use egui::Ui;
 use flume::Sender;
 use futures::{AsyncBufReadExt, StreamExt};
@@ -21,8 +21,8 @@ pub enum RgaJson {
     Match {
         data: RgaMatchData,
     },
-    #[serde(other)] 
-    Irrelevant
+    #[serde(other)]
+    Irrelevant,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -39,7 +39,7 @@ pub struct Match {
     #[serde(rename = "match")]
     mat: Text,
     start: u64,
-    end: u64
+    end: u64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -47,9 +47,12 @@ pub struct Text {
     text: String,
 }
 
-
 #[async_trait::async_trait]
 impl SearchEngine for Rga {
+    fn name(&self) -> &'static str {
+        "rga"
+    }
+
     fn prefix(&self) -> &'static str {
         "@rg"
     }
@@ -68,7 +71,9 @@ impl SearchEngine for Rga {
             .stdout(async_process::Stdio::piped())
             .kill_on_drop(true)
             .spawn()?;
-        let mut lines = futures::io::BufReader::new(child.stdout.take().unwrap()).lines().enumerate();
+        let mut lines = futures::io::BufReader::new(child.stdout.take().unwrap())
+            .lines()
+            .enumerate();
 
         while let Some((i, line)) = lines.next().await {
             let line = line?;
@@ -79,7 +84,7 @@ impl SearchEngine for Rga {
                 RgaJson::Match { data } => data,
             };
             let rga_match_clone = rga_match.clone();
-            
+
             let icon = self.icon();
 
             let send_res = channel
@@ -89,20 +94,36 @@ impl SearchEngine for Rga {
                             icon(ui);
 
                             ui.add(
-                                egui::Label::new(egui::RichText::new(format!("./{path}:", path = rga_match.path.text)).monospace().italics())
-                                    .wrap_mode(egui::TextWrapMode::Wrap),
+                                egui::Label::new(
+                                    egui::RichText::new(format!(
+                                        "./{path}:",
+                                        path = rga_match.path.text
+                                    ))
+                                    .monospace()
+                                    .italics(),
+                                )
+                                .wrap_mode(egui::TextWrapMode::Wrap),
                             );
 
                             ui.add(
-                                egui::Label::new(egui::RichText::new(format!("{match}", r#match = rga_match.lines.text.trim())).monospace())
-                                    .wrap_mode(egui::TextWrapMode::Wrap),
+                                egui::Label::new(
+                                    egui::RichText::new(format!(
+                                        "{match}",
+                                        r#match = rga_match.lines.text.trim()
+                                    ))
+                                    .monospace(),
+                                )
+                                .wrap_mode(egui::TextWrapMode::Wrap),
                             )
                         })
                     },
                     {
                         let dir = dir.clone().to_string_lossy().to_string();
                         Box::new(move |ui: &mut egui::Ui| {
-                            ui.ctx().send_cmd(egui::OutputCommand::CopyText(format!("{dir}/{path}", path = rga_match_clone.path.text)));
+                            ui.ctx().send_cmd(egui::OutputCommand::CopyText(format!(
+                                "{dir}/{path}",
+                                path = rga_match_clone.path.text
+                            )));
                         })
                     },
                     5 - (i as i64),

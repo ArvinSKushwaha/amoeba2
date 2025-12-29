@@ -84,16 +84,19 @@ impl QueryResponse {
             .show(ui, |ui| {
                 ui.set_width(width - (theme.margin.left + theme.margin.right) as f32);
                 ui.horizontal(|ui| {
-                    
                     let data = if let Some(duration) = self.duration {
                         let small_style = TextStyle::Small.resolve(&ui.style());
                         let formatted_duration = format_duration(duration);
                         let text = egui::RichText::new(&formatted_duration).small();
-                        let text_size = ui.fonts_mut(|f| f.layout_no_wrap(
-                            formatted_duration,
-                            small_style,
-                            theme.noninteractive_fg_stroke.color().to(),
-                        )).size();
+                        let text_size = ui
+                            .fonts_mut(|f| {
+                                f.layout_no_wrap(
+                                    formatted_duration,
+                                    small_style,
+                                    theme.noninteractive_fg_stroke.color().to(),
+                                )
+                            })
+                            .size();
 
                         Some((text, text_size))
                     } else {
@@ -102,7 +105,9 @@ impl QueryResponse {
 
                     ui.horizontal_wrapped(|ui| {
                         if let Some((_, size)) = data {
-                            ui.set_max_width(ui.available_width() - size.x - theme.margin.x() as f32);
+                            ui.set_max_width(
+                                ui.available_width() - size.x - theme.margin.x() as f32,
+                            );
                         }
                         (self.display)(ui)
                     });

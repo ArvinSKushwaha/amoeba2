@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![allow(clippy::from_over_into)]
 
 use egui::style::{Selection, WidgetVisuals, Widgets};
 use egui::{Color32, Shadow};

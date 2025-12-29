@@ -1,23 +1,22 @@
-mod mock_engine;
-pub mod response;
-mod wikipedia;
-mod file_search;
 mod content_search;
+mod file_search;
+mod mock_engine;
+mod wikipedia;
 
 use crate::query::content_search::Rga;
+use crate::query::file_search::Fzf;
 use crate::query::mock_engine::MockEngine;
-use crate::query::response::QueryResponse;
 use crate::query::wikipedia::WikipediaEngine;
+use crate::response::QueryResponse;
 use egui::Ui;
 use flume::Receiver;
 use futures::executor::ThreadPool;
-use futures::future::{join_all, RemoteHandle};
+use futures::future::{RemoteHandle, join_all};
 use futures::task::SpawnExt;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Deref;
-use crate::query::file_search::Fzf;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryConfig {
@@ -167,6 +166,7 @@ impl QueryEngine {
 
 #[async_trait::async_trait]
 pub trait SearchEngine {
+    fn name(&self) -> &'static str;
     fn prefix(&self) -> &'static str;
     fn icon(&self) -> Box<dyn Fn(&mut Ui) -> egui::Response + Send>;
 
